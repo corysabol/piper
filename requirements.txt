@@ -1,7 +1,7 @@
 colorama==0.4.4
 commonmark==0.9.1
 Pygments==2.10.0
-pypyr==4.5.0
+pypyr>=5
 python-dateutil==2.8.2
 rich==10.7.0
 ruamel.yaml==0.17.11

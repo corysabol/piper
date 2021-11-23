@@ -42,11 +42,11 @@
         },
         "pypyr": {
             "hashes": [
-                "sha256:304a895ee6f7b01a048bd35191b104b1ed4a7f51f63e61ca024d5d85e4650d91",
-                "sha256:c4f13ed516021344e67f6ab6cd7b1f17523165304a1a8b4c9cb5dc491771152e"
+                "sha256:48aad54c90c02ee441dfbb15bf24ba190ca982b83bba971edce5eac87d72aa1a",
+                "sha256:9f765f2bbdf4e95508e1d7c828726a55b5cfd02b0c8de3cf017272ef993c9d0a"
             ],
             "index": "pypi",
-            "version": "==4.5.0"
+            "version": "==5.0.0"
         },
         "python-dateutil": {
             "hashes": [
@@ -58,19 +58,19 @@
         },
         "rich": {
             "hashes": [
-                "sha256:13ac80676e12cf528dc4228dc682c8402f82577c2aa67191e294350fa2c3c4e9",
-                "sha256:517b4e0efd064dd1fe821ca93dd3095d73380ceac1f0a07173d507d9b18f1396"
+                "sha256:8bfe4546d56b4131298d3a9e571a0742de342f1593770bd0d4707299f772a0af",
+                "sha256:ab9cbfd7a3802d8c6f0fa91e974630e2a69447972dcbb9dfe9b01016dd95e38e"
             ],
             "index": "pypi",
-            "version": "==10.7.0"
+            "version": "==10.14.0"
         },
         "ruamel.yaml": {
             "hashes": [
-                "sha256:505d0c2d7d0ccc2b68eca0e23fb78a86504c2a7e95ec5f2ccb216557c380e152",
-                "sha256:b5e96c0a6619830a7733099f0599b56556a963c6114ef64d0ddb4673347b426f"
+                "sha256:9751de4cbb57d4bfbf8fc394e125ed4a2f170fbff3dc3d78abf50be85924f8be",
+                "sha256:9af3ec5d7f8065582f3aa841305465025d0afd26c5fb54e15b964e11838fc74f"
             ],
             "index": "pypi",
-            "version": "==0.17.11"
+            "version": "==0.17.17"
         },
         "ruamel.yaml.clib": {
             "hashes": [
