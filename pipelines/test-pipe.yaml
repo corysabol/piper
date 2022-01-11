@@ -2,35 +2,23 @@
 context_parser: pypyr.parser.keyvaluepairs
 steps:
   - name: pypyr.steps.py
-    comment: Print 'hi from python' from python
+    comment: |
+      Open a newlined delimited hosts file and store it
+      in the context object as a comma delimited list for rustscan.
     in:
       py: |
-        print('hi from python')
-        assert not finished
-  
-  - name: pypyr.steps.py
-    comment: Use python to sleep for 2 seconds
-    in:
-      py: |
-        import time
+        hosts = ','.join(open('./hosts.txt').read().splitlines())
+        logger('Loaded hosts :balloon:')
+        logger(hosts)
+        save('hosts')
 
-        time.sleep(2)
-  - name: pypyr.steps.cmd
-    comment: Run an nmap scan using the cmd step
+  - name: piper.steps.rustscan
+    comment: run custom rustscan step!
+    run: False
     in:
-      cmd: 
-        run: nmap.exe -T4 scanme.nmap.org
-        save: True
-  - name: pypyr.steps.set
-    comment: Set some stuff in the context
-    in:
-      set:
-        myoutput: I was set in the pipeline!
-        some_nesting:
-          down_level:
-            arb_number: 123
-            foo: !py 1 == 1
-            arb_bool: False
+      docker: True
+      persist: True
+      flags: '--greppable'
 
 on_success:
   - name: pypyr.steps.set
