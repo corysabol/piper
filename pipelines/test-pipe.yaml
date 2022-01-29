@@ -21,7 +21,7 @@ steps:
       flags: '--greppable'
 
 on_success:
-  - name: pypyr.steps.contextsetf
+  - name: pypyr.steps.set
     in:
-      contextSetf:
+      set:
         finished: True
