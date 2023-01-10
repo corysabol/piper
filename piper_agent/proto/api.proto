@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package piper;
+
+// Pipeline input
+message PipelineInput {
+  string pipeline = 1;
+}
+
+// Pipeline output
+message PipelineOutput {
+  string output = 1;
+}
+
+// Service definition
+service PiperAgent {
+  rpc RunPipeline(PipelineInput) returns (PipelineOutput); 
+}

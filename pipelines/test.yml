@@ -1,0 +1,40 @@
+name: Foo
+author: Pippins
+description: |
+  This is just a test pipeline. Do not panic :)
+  Seriously, don't be a party pooper.
+tasks:
+  - name: Run a shell command
+    comment: echo something
+    task: cmd 
+    args:
+      cmd: "echo \"hi from a pipeline task\""
+  - name: Set global variable
+    comment: Set a global variable in the ctx object 
+    task: script
+    args:
+      script: |
+        print("Setting ctx value from python task")
+        ctx["test"] = "This is a test"
+  - task: set_var
+    args:
+      type: number
+      var: bar
+      val: 42
+  - task: script
+    args:
+      script: |
+        print("Getting bar")
+        print(ctx["bar"])
+        print("Use piper string interpolation to get bar - #{bar}")
+  - name: test variable interpolation
+    comment: testing var interpolation using \#{var}
+    task: cmd
+    args:
+      cmd: echo '#{bar}'
+  - name: Access ctx object
+    comment: foo
+    task: script
+    args:
+      script: |
+        print(f'Context from Python3 {ctx}')

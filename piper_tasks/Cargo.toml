@@ -1,0 +1,14 @@
+[package]
+type = ["lib"]
+name = "piper_tasks"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+trust-dns-resolver = "0.20.4"
+tokio = { version = "1.17.0", feature = "io-std" }
+hyper = "0.14.18"
+pyo3 = { version = "0.15.1" }
+regex = "1.5.6"

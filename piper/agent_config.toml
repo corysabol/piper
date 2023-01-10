@@ -1,0 +1,4 @@
+ip = "127.0.0.1:50051"
+# auth_key = "super secret auth key" # TODO come up with better way to manage this (allow to pull from ENV)
+## if not supplied then piper will generate one for you that you are responsible for adding to your project config
+auth_key = "env:AUTH_KEY"

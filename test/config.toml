@@ -1,0 +1,16 @@
+owner = "Lautrec"
+description = "Bug bounty recon and vuln scanning"
+
+# if present this will be supplied with all requests to all defined agents
+auth_key = "super duper auth key"
+
+[[agents]]
+name = "alpha"
+ip = "127.0.0.1:50051"
+comment = "agent for running recon pipelines"
+# auth_key = "if present will override the global auth_key"
+
+[[agents]]
+name = "beta"
+ip = "127.0.0.1:50052"
+comment = "agent for running vuln scan pipelines"

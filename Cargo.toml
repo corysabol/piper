@@ -1,0 +1,8 @@
+[workspace]
+
+members = [
+    "piper",
+    "piper_agent",
+    "piper_tasks",
+    "notifications",
+]
