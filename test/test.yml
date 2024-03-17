@@ -2,11 +2,10 @@ name: Foo
 author: Pippins
 description: |
   This is just a test pipeline. Do not panic :)
-  Seriously, don't be a party pooper.
 tasks:
   - name: Run a shell command
     comment: echo something
-    task: cmd 
+    task: cmd
     args:
       cmd: "echo \"hi from a pipeline task\""
   - name: Set global variable

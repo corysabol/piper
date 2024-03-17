@@ -7,8 +7,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-trust-dns-resolver = "0.20.4"
-tokio = { version = "1.17.0", feature = "io-std" }
-hyper = "0.14.18"
-pyo3 = { version = "0.15.1" }
+pyo3 = { version = "0.15.1" } 
 regex = "1.5.6"
+anyhow = "1.0.79"
+candle-core = { git = "https://github.com/huggingface/candle.git" }
+candle-nn = { git = "https://github.com/huggingface/candle.git" }
+candle-transformers = { git = "https://github.com/huggingface/candle.git" }
+hf-hub = "0.3.2"
+serde_json = "1.0.113"
+tokenizers = "0.15.1"
+hyper = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["full"] }
+reqwest = {version = "0.11", features = ["blocking", "json"]}
