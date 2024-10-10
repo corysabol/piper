@@ -1,7 +1,7 @@
 # piper
-Piper is super glue for your bash and python workflows.
+Piper is super glue for your shell and Lua workflows.
 
-Piper is a tool aimed at allowing you to author repeatable pipeline using a mixture of shell scripting and Python, and run them locally or against a Piper remote agent via gRPC.
+Piper is a tool aimed at allowing you to author repeatable pipeline using a mixture of shell scripting and Lua, and run them locally or against a Piper remote agent via gRPC.
 
 ## Core Concepts
 
