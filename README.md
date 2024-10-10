@@ -5,7 +5,7 @@ Piper is a tool aimed at allowing you to author repeatable pipeline using a mixt
 
 ## Core Concepts
 
-Piper on the following 3 core concepts:
+Piper is built on the following core concepts:
 
 ### 📡 Remote execution
 ### 📝 Persistence
