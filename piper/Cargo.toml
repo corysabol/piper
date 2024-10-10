@@ -13,7 +13,8 @@ serde = { version = "1.0.136", features = ["derive"] }
 serde_yaml = "0.8.23"
 serde_json = "1.0.59"
 tokio = { version = "1.17.0" }
-pyo3 = { version = "0.15.1", features = ["auto-initialize"] }
+#pyo3 = { version = "0.15.1", features = ["auto-initialize"] }
+mlua = { version = "0.10.0-rc.1", features = ["lua54", "vendored"] }
 piper_agent = { path = "../piper_agent" }
 piper_runner = { path = "../piper_runner" }
 rusqlite = { version = "0.27.0", features = ["bundled"] }

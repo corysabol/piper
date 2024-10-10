@@ -1,6 +1,4 @@
-use pyo3::types::{
-   PyDict,
-};
+use mlua::prelude::*;
 use regex::{
     Regex,
     Captures,
@@ -8,16 +6,18 @@ use regex::{
 use std::collections::HashMap;
 
 /// Sets a variable in the shared context
-pub fn set_var(args: &HashMap<String, String>, ctx: &PyDict) {
-    let var_name = args.get("var");
-    let var_value = args.get("val");
-    ctx.set_item(var_name, var_value).unwrap();
+pub fn set_var(args: &HashMap<String, String>, lua: &Lua, ctx: &LuaTable) {
+    let var_name = args.get("var").unwrap();
+    let var_value = args.get("val").unwrap();
+    let globals = lua.globals();
+    ctx.set(var_name.clone(),var_value.clone());
+    globals.set("ctx", ctx);
 }
 
-pub fn interpolate_string(str: &String, ctx: &PyDict) -> String {
+pub fn interpolate_string(str: &String, ctx: &LuaTable) -> String {
     let re = Regex::new(r"#\{(.*)\}").unwrap();
     let res = re.replace_all(str, |caps: &Captures| {
-        format!("{}", ctx.get_item(&caps[1]).unwrap())
+        format!("{}", ctx.get::<String>(&caps[1]).unwrap())
     });
 
     res.to_string()
