@@ -29,7 +29,7 @@ tasks:
     task: script
     args:
       script: |
-        print("Setting ctx value from python task")
+        print("Setting ctx value from Lua task")
         ctx["test"] = "This is a test"
   - task: set_var
     args:
@@ -52,7 +52,7 @@ tasks:
     task: script
     args:
       script: |
-        print(f'Context from Python3 {ctx}')
+        print(ctx)
 ```
 
 ## Basic Usage
