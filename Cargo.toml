@@ -1,15 +1,4 @@
 [workspace]
 resolver = "2"
 
-members = [
-    "piper",
-    "piper_agent",
-    "piper_tasks",
-    "notifications",
-]
-
-[workspace.dependencies]
-hyper = { version = "1", features = ["full"] }
-tokio = { version = "1", features = ["full"] }
-http-body-util = "0.1"
-hyper-util = { version = "0.1", features = ["full"] }
+members = ["piper", "piper_runner", "piper_tasks"]

@@ -12,3 +12,5 @@ serde_json = "1.0.59"
 tokio = { version = "1.17.0" }
 piper_tasks = { path = "../piper_tasks" }
 rusqlite = { version = "0.27.0", features = ["bundled"] }
+chrono = "0.4.38"
+mlua = { workspace = true, features = ["lua54", "vendored"] }

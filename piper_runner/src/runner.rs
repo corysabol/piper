@@ -1,4 +1,6 @@
-use hyper::Uri;
+use cmd::CommandTask;
+use lua::LuaTask;
+use mlua::{Lua, Table, Value as LuaValue};
 use piper_tasks::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -6,12 +8,8 @@ use std::collections::HashMap;
 use std::fs;
 use std::net::SocketAddr;
 use std::str::FromStr;
+use task::{Task, TaskDefinition};
 use tokio::runtime::Runtime;
-
-use pyo3::{
-    prelude::*,
-    types::{IntoPyDict, PyBytes, PyDict, PyModule},
-};
 
 // Pipeline
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -37,80 +35,64 @@ pub fn run_from_file(path: std::path::PathBuf) -> Result<(), Box<dyn std::error:
 }
 
 pub fn run(pipeline_string: String) -> Result<(), Box<dyn std::error::Error>> {
-    let runtime = Runtime::new().unwrap();
-    let deserialized_pipeline: Pipeline = serde_yaml::from_str(&pipeline_string)?;
+    let lua = Lua::new();
+    let globals = lua.globals();
+    let ctx: Table = lua.create_table().unwrap();
+    globals.set("ctx", ctx.clone());
+
+    let pipeline: Pipeline = serde_yaml::from_str(&pipeline_string).unwrap();
+
+    // Task dep graph
+    let mut task_map: HashMap<String, TaskDefinition> = HashMap::new();
+    for task in &pipeline.tasks {
+        task_map.insert(task.name.clone(), task.clone());
+    }
 
     println!(
         "Pipeline: {:#?}\nAuthor: {:#?}\nDesc:{:#?}\n",
-        deserialized_pipeline.name, deserialized_pipeline.author, deserialized_pipeline.description
+        pipeline.name, pipeline.author, pipeline.description
     );
 
-    Python::with_gil(|py| {
-        let locals = PyDict::new(py);
-        let ctx = PyDict::new(py);
-        ctx.set_item("bar", 1337);
-        locals.set_item("ctx", ctx);
+    let mut i = 0;
+    while i < pipeline.tasks.len() {
+        let task = &pipeline.tasks[i];
 
-        deserialized_pipeline.tasks.iter().for_each(|task| {
-            let task_kind = &task.task;
-            let task_name = task.name.as_ref();
-            let task_comment = task.comment.as_ref();
+        match task.task.as_str() {
+            "if" => {
+                // Evaluate condition in Lua
+                let condition = task.if_condition.as_ref().unwrap();
+                let result: bool = lua.load(&condition).eval()?;
 
-            println!("[+] Running Task: {}", task_kind);
+                // Execute appropriate branch tasks
+                let branch_tasks = if result {
+                    &task.then_tasks
+                } else {
+                    &task.else_tasks
+                };
 
-            if task_name.is_some() {
-                println!("    Name: {}", task_name.unwrap());
+                for task_name in branch_tasks.as_ref().unwrap() {
+                    execute_task(&lua, &ctx, &task_map[task_name])?;
+                }
             }
-            if task_comment.is_some() {
-                println!("    Comment: {}", task_comment.unwrap());
+            "llm" => {
+                // Execute LLM task first
+                execute_task(&lua, &ctx, task)?;
+
+                // Get LLM's decision from context
+                let decision: String = ctx.get(format!("task_{}_decision", task.name))?;
+
+                // Execute chosen task
+                if task.available_tasks.as_ref().unwrap().contains(&decision) {
+                    execute_task(&lua, &ctx, &task_map[&decision])?;
+                }
             }
-
-            let args = task.args.as_ref().unwrap();
-
-            match task_kind.as_str() {
-                "script" => {
-                    let mut code = args.get("script").unwrap();
-
-                    // string interpolation only works on cmds and scripts
-                    let res = var_ops::interpolate_string(code, ctx);
-                    code = &res;
-
-                    py.run(code, None, Some(locals)).unwrap();
+            _ => {
+                if task.flow == Some(TaskFlow::Sequential) || task.flow.is_none() {
+                    execute_task(&lua, &ctx, task)?;
                 }
-                "cmd" => {
-                    var_ops::interpolate_string(&args["cmd"], ctx);
-
-                    let (stdout, stderr) = cmd::run(&args);
-                    if !stdout.is_empty() {
-                        println!("stdout: {}", stdout);
-                    }
-
-                    if !stderr.is_empty() {
-                        println!("stderr: {}", stderr);
-                    }
-                }
-                "notify" => {
-                    // we dont block for a response here, we just shoot out the notification.
-                    // trigger POST reqeust to webhook to notify
-                    let uri = args.get("uri").unwrap();
-                    let message =
-                        serde_json::Value::String(serde_json::to_string(args).unwrap().to_string());
-                    notify::notify(uri, message);
-                }
-                "llm" => {
-                    // inference againt a local llm model
-                }
-                "fetch_url" => {
-                    runtime.block_on(http::http_get(&args));
-                }
-                "raw_http_req" => {}
-                "set_var" => {
-                    var_ops::set_var(&args, ctx);
-                }
-                _ => (),
             }
-        });
-    });
-
+        }
+        i += 1;
+    }
     Ok(())
 }
