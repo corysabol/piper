@@ -16,3 +16,4 @@ tokenizers = "0.15.1"
 hyper = { version = "1", features = ["full"] }
 tokio = { version = "1", features = ["full"] }
 reqwest = {version = "0.11", features = ["blocking", "json"]}
+kalosm = "0.3.2"

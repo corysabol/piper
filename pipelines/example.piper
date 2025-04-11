@@ -1,0 +1,55 @@
+// Basic Example Pipeline
+pipeline example {
+    metadata {
+        name: "Example Pipeline",
+        author: "Piper Team",
+        description: "A simple example pipeline to demonstrate the DSL syntax",
+        version: "1.0.0",
+    }
+
+    tasks {
+        // Set a variable
+        set_var {
+            var: "greeting",
+            val: "Hello, World!",
+        }
+
+        // Run a shell command
+        cmd echo_greeting {
+            cmd: "echo '#{greeting}'",
+            description: "Echo the greeting",
+        }
+
+        // Run a Lua script
+        lua hello_lua {
+            code: "
+                print('Hello from Lua!')
+                print('The greeting is: ' .. ctx.greeting)
+                ctx.counter = 42
+            ",
+            description: "Demonstrate Lua integration",
+        }
+
+        // Use variable interpolation in a command
+        cmd show_counter {
+            cmd: "echo 'The counter is: #{counter}'",
+            description: "Show the counter value set by Lua",
+        }
+
+        // Simple LLM example
+        llm simple_query {
+            model: "mistralai/Mistral-7B-Instruct-v0.2",
+            prompt: "What are 5 best practices for secure coding?",
+            system: "You are a cybersecurity expert specializing in secure coding practices. Provide concise, actionable advice.",
+            temperature: 0.3,
+            max_tokens: 512,
+            output: "secure_coding_tips",
+        }
+
+        // Display the LLM output
+        cmd show_tips {
+            cmd: "echo '#{secure_coding_tips}'",
+            description: "Show the secure coding tips from the LLM",
+        }
+    }
+}

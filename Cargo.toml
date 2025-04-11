@@ -6,6 +6,7 @@ members = [
     "piper_agent",
     "piper_tasks",
     "notifications",
+    "piper_dsl",
 ]
 
 [workspace.dependencies]

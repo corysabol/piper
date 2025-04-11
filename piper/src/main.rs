@@ -4,8 +4,9 @@ use clap::{Parser, Subcommand};
 use config::Config;
 use piper_agent::{agent::Agent, *};
 use piper_runner::*;
+use piper_dsl::Pipeline;
 use serde::Deserialize;
-use std::{collections::HashMap, fs};
+use std::{collections::HashMap, fs, path::Path};
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]

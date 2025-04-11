@@ -1,0 +1,78 @@
+// Reconnaissance Pipeline with LLM Integration
+pipeline recon {
+    metadata {
+        name: "Reconnaissance Pipeline",
+        author: "Piper Team",
+        description: "A pipeline for automated reconnaissance with LLM analysis",
+        version: "1.0.0",
+    }
+
+    tasks {
+        // Set target domain
+        set_var {
+            var: "target_domain",
+            val: "example.com",
+        }
+
+        // Run nmap scan
+        cmd nmap_scan {
+            cmd: "nmap -sV -p 1-1000 #{target_domain} -oN nmap_results.txt",
+            description: "Perform service version detection on common ports",
+        }
+
+        // Run subdomain enumeration
+        cmd subdomain_enum {
+            cmd: "subfinder -d #{target_domain} -o subdomains.txt",
+            description: "Enumerate subdomains using subfinder",
+        }
+
+        // Run directory brute force
+        cmd dir_brute {
+            cmd: "gobuster dir -u https://#{target_domain} -w /usr/share/wordlists/dirb/common.txt -o gobuster_results.txt",
+            description: "Brute force directories using gobuster",
+        }
+
+        // Process nmap results with LLM
+        llm analyze_nmap {
+            model: "mistralai/Mistral-7B-Instruct-v0.2",
+            prompt: "Analyze the following nmap scan results and identify potential security vulnerabilities or misconfigurations:\n\n$(cat nmap_results.txt)",
+            system: "You are a cybersecurity expert specializing in network security and vulnerability assessment. Provide a concise analysis of scan results, highlighting potential security issues, exposed services, and recommendations for further investigation.",
+            temperature: 0.3,
+            max_tokens: 1024,
+            output: "nmap_analysis",
+        }
+
+        // Process subdomain results with LLM
+        llm analyze_subdomains {
+            model: "mistralai/Mistral-7B-Instruct-v0.2",
+            prompt: "Analyze the following subdomain enumeration results and suggest which subdomains might be most interesting for further security testing:\n\n$(cat subdomains.txt)",
+            system: "You are a cybersecurity expert specializing in web application security. Provide a concise analysis of subdomain enumeration results, highlighting potentially interesting targets for further investigation based on naming patterns and common security misconfigurations.",
+            temperature: 0.3,
+            max_tokens: 1024,
+            output: "subdomain_analysis",
+        }
+
+        // Generate final report with LLM
+        llm generate_report {
+            model: "mistralai/Mistral-7B-Instruct-v0.2",
+            prompt: "Generate a comprehensive security reconnaissance report for #{target_domain} based on the following analyses:\n\nNmap Analysis:\n#{nmap_analysis}\n\nSubdomain Analysis:\n#{subdomain_analysis}\n\nDirectory Brute Force Results:\n$(cat gobuster_results.txt)",
+            system: "You are a cybersecurity expert tasked with creating professional security reports. Create a well-structured report with the following sections: Executive Summary, Findings, Recommendations, and Technical Details. Focus on clarity and actionable insights.",
+            temperature: 0.3,
+            max_tokens: 2048,
+            output: "final_report",
+        }
+
+        // Save the final report to a file
+        cmd save_report {
+            cmd: "echo '#{final_report}' > recon_report_#{target_domain}.md",
+            description: "Save the final report to a markdown file",
+        }
+
+        // Notify completion
+        notify {
+            uri: "https://example.com/webhook",
+            message: "Reconnaissance completed for #{target_domain}",
+            report_url: "file://recon_report_#{target_domain}.md",
+        }
+    }
+}
