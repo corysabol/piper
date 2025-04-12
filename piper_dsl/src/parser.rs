@@ -30,7 +30,16 @@ pub struct Pipeline {
     pub author: Option<String>,
     pub description: Option<String>,
     pub version: Option<String>,
-    pub tasks: Vec<Task>,
+    pub blocks: Vec<Block>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum Block {
+    Task(Task),
+    IfStatement(IfStatement),
+    ForLoop(ForLoop),
+    WhileLoop(WhileLoop),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,6 +47,73 @@ pub struct Task {
     pub name: Option<String>,
     pub task_type: TaskType,
     pub properties: HashMap<String, Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IfStatement {
+    pub condition: Condition,
+    pub blocks: Vec<Block>,
+    pub else_if_blocks: Vec<ElseIfBlock>,
+    pub else_block: Option<Vec<Block>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ElseIfBlock {
+    pub condition: Condition,
+    pub blocks: Vec<Block>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ForLoop {
+    pub iterator: String,
+    pub iterable: Iterable,
+    pub blocks: Vec<Block>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum Iterable {
+    Array(Vec<Value>),
+    Range { start: f64, end: f64 },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WhileLoop {
+    pub condition: Condition,
+    pub blocks: Vec<Block>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum Condition {
+    Comparison {
+        left: Value,
+        operator: ComparisonOperator,
+        right: Value,
+    },
+    Boolean(bool),
+    VarInterpolation(String),
+    LogicalOperation {
+        left: Box<Condition>,
+        operator: LogicalOperator,
+        right: Box<Condition>,
+    },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum ComparisonOperator {
+    Equal,
+    NotEqual,
+    GreaterThan,
+    LessThan,
+    GreaterThanOrEqual,
+    LessThanOrEqual,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum LogicalOperator {
+    And,
+    Or,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

@@ -49,7 +49,7 @@ metadata = {
 // Tasks
 tasks = {
     "tasks" ~ "{"
-        ~ task*
+        ~ (task | control_flow)*
     ~ "}"
 }
 
@@ -66,6 +66,62 @@ task_type = {
 task_property = {
     (identifier ~ ":" ~ value ~ ",")
 }
+
+// Control flow constructs
+control_flow = _{ if_statement | for_loop | while_loop }
+
+// If statement
+if_statement = {
+    "if" ~ condition ~ "{"
+        ~ (task | control_flow)*
+    ~ "}"
+    ~ else_if_statement*
+    ~ else_statement?
+}
+
+else_if_statement = {
+    "else" ~ "if" ~ condition ~ "{"
+        ~ (task | control_flow)*
+    ~ "}"
+}
+
+else_statement = {
+    "else" ~ "{"
+        ~ (task | control_flow)*
+    ~ "}"
+}
+
+// For loop
+for_loop = {
+    "for" ~ identifier ~ "in" ~ (array | range_expr) ~ "{"
+        ~ (task | control_flow)*
+    ~ "}"
+}
+
+range_expr = { number ~ ".." ~ number }
+
+// While loop
+while_loop = {
+    "while" ~ condition ~ "{"
+        ~ (task | control_flow)*
+    ~ "}"
+}
+
+// Condition expressions
+condition = { 
+    atom ~ (logic_op ~ atom)*
+}
+
+atom = {
+    comparison |
+    boolean |
+    var_interpolation |
+    "(" ~ condition ~ ")"
+}
+
+comparison = { value ~ compare_op ~ value }
+compare_op = { "==" | "!=" | ">" | "<" | ">=" | "<=" }
+logic_op = { "&&" | "||" }
 
 // LLM specific constructs
 llm_task = {
