@@ -1,0 +1,163 @@
+// Example pipeline using the new DSL syntax
+// Usage: piper run -p pipelines/example_new.piper target=example.com
+
+pipeline example_recon(target="example.com", depth="basic") {
+  // Named data literals
+  TARGET = target
+  OUTPUT_DIR = "./results"
+  
+  // Configuration options as data structures
+  SCAN_OPTIONS = {
+    basic: {
+      ports: "top-1000",
+      timing: "T3",
+      timeout: 60
+    },
+    deep: {
+      ports: "1-65535",
+      timing: "T4",
+      timeout: 120
+    }
+  }
+  
+  // Multiline string template for LLM system prompt
+  SYSTEM_PROMPT = """
+    You are a cybersecurity expert analyzing reconnaissance data.
+    Identify potential vulnerabilities, misconfigurations, and security issues.
+    Focus on actionable findings that a penetration tester could exploit.
+  """
+  
+  // Define tasks as named variables with function-call syntax
+  // Basic information gathering
+  whois = cmd(
+    command="whois #{TARGET} > #{OUTPUT_DIR}/whois.txt",
+    description="Gathering WHOIS information",
+    output="whois_output"
+  )
+  
+  // DNS enumeration
+  dns_enum = cmd(
+    command="host -t ANY #{TARGET} > #{OUTPUT_DIR}/dns.txt",
+    description="Enumerating DNS records",
+    output="dns_output"
+  )
+  
+  // Port scanning with configuration based on depth
+  port_scan = cmd(
+    command="nmap -sV -p #{SCAN_OPTIONS[depth].ports} -#{SCAN_OPTIONS[depth].timing} #{TARGET} -oN #{OUTPUT_DIR}/nmap.txt",
+    description="Scanning network services",
+    timeout=SCAN_OPTIONS[depth].timeout,
+    output="scan_output"
+  )
+  
+  // HTTP header analysis
+  http_headers = cmd(
+    command="curl -I https://#{TARGET} -o #{OUTPUT_DIR}/headers.txt",
+    description="Analyzing HTTP headers",
+    output="headers_output"
+  )
+  
+  // Process results
+  process_results = cmd(
+    command="python process_results.py --dir #{OUTPUT_DIR} --output #{OUTPUT_DIR}/processed_data.json",
+    description="Processing scan results",
+    output="processed_data"
+  )
+  
+  // Define tasks that the LLM might choose to run
+  ssl_scan = cmd(
+    command="sslscan #{TARGET} > #{OUTPUT_DIR}/ssl_scan.txt",
+    description="Analyzing SSL/TLS configuration",
+    output="ssl_results"
+  )
+  
+  vuln_scan = cmd(
+    command="nmap --script vuln #{TARGET} -oN #{OUTPUT_DIR}/vuln_scan.txt",
+    description="Running vulnerability scan",
+    output="vuln_results"
+  )
+  
+  dir_brute = cmd(
+    command="gobuster dir -u https://#{TARGET} -w common.txt -o #{OUTPUT_DIR}/dirs.txt",
+    description="Brute forcing directories",
+    output="dir_results"
+  )
+  
+  // LLM analysis with tasks as an argument
+  analyze = llm(
+    model="mistralai/Mistral-7B-Instruct-v0.2",
+    system=SYSTEM_PROMPT,
+    prompt="""
+      I've performed reconnaissance on #{TARGET}:
+      
+      WHOIS information:
+      #{whois_output}
+      
+      DNS records:
+      #{dns_output}
+      
+      Port scan results:
+      #{scan_output}
+      
+      HTTP headers:
+      #{headers_output}
+      
+      Please analyze these results and identify security issues.
+    """,
+    temperature=0.3,
+    output="analysis",
+    // Tasks the LLM can choose to run
+    tasks=[ssl_scan, vuln_scan, dir_brute]
+  )
+  
+  // Generate report
+  report = llm(
+    model="mistralai/Mistral-7B-Instruct-v0.2",
+    prompt="""
+      Based on the reconnaissance of #{TARGET}:
+      
+      Initial analysis: #{analysis}
+      
+      Additional findings:
+      #{ssl_results || "No SSL/TLS analysis performed"}
+      #{vuln_results || "No vulnerability scan performed"}
+      #{dir_results || "No directory brute force performed"}
+      
+      Generate a security report with findings and recommendations.
+    """,
+    temperature=0.2,
+    output="report_content"
+  )
+  
+  // Save report
+  save_report = cmd(
+    command="echo '# Security Report for #{TARGET}\n\n#{report_content}' > #{OUTPUT_DIR}/report.md",
+    description="Saving final report",
+    output="report_path"
+  )
+  
+  // Notify user
+  notify_user = notify({
+    to: "security@example.com",
+    subject: "Security scan for #{TARGET} complete",
+    body: "The security scan for #{TARGET} is complete. See attached report.",
+    attachment: "#{report_path}"
+  })
+  
+  // Define flow with sequential and parallel execution
+  flow:
+    // Initial scans in parallel
+    [whois, dns_enum, port_scan, http_headers] >
+    
+    // Process results
+    process_results >
+    
+    // LLM analysis (which may run additional tasks)
+    analyze >
+    
+    // Generate and save report
+    report > save_report >
+    
+    // Conditional notification based on depth
+    (depth == "deep" ? notify_user : null)
+}
