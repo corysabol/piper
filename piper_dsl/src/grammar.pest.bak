@@ -1,0 +1,140 @@
+// Piper DSL Grammar
+
+// Whitespace and comments
+WHITESPACE = _{ " " | "\t" | NEWLINE }
+COMMENT = _{ "//" ~ (!NEWLINE ~ ANY)* ~ NEWLINE | "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
+
+// Basic elements
+identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+string_literal = ${ "\"" ~ inner_string ~ "\"" }
+inner_string = @{ (!("\"" | "\\") ~ ANY)* ~ (("\\" ~ ANY) ~ (!("\"" | "\\") ~ ANY)*)* }
+number = @{ "-"? ~ ("0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) ~ ("." ~ ASCII_DIGIT+)? }
+boolean = @{ "true" | "false" }
+
+// Variable interpolation
+var_interpolation = ${ "#{" ~ identifier ~ "}" }
+
+// Value types
+value = _{ string_literal | number | boolean | var_interpolation | object | array }
+
+// Objects and arrays
+object = {
+    "{" ~ "}" |
+    "{" ~ pair ~ ("," ~ pair)* ~ ","? ~ "}"
+}
+pair = { string_literal ~ ":" ~ value }
+
+array = {
+    "[" ~ "]" |
+    "[" ~ value ~ ("," ~ value)* ~ ","? ~ "]"
+}
+
+// Pipeline structure
+pipeline = {
+    "pipeline" ~ identifier ~ "{"
+        ~ metadata
+        ~ tasks
+    ~ "}"
+}
+
+metadata = {
+    "metadata" ~ "{"
+        ~ ("name" ~ ":" ~ string_literal ~ ",")?
+        ~ ("author" ~ ":" ~ string_literal ~ ",")?
+        ~ ("description" ~ ":" ~ string_literal ~ ",")?
+        ~ ("version" ~ ":" ~ string_literal ~ ",")?
+    ~ "}"
+}
+
+// Tasks
+tasks = {
+    "tasks" ~ "{"
+        ~ (task | control_flow)*
+    ~ "}"
+}
+
+task = {
+    task_type ~ identifier? ~ "{"
+        ~ task_property*
+    ~ "}"
+}
+
+task_type = {
+    "cmd" | "script" | "llm" | "http" | "notify" | "set_var" | "lua"
+}
+
+task_property = {
+    (identifier ~ ":" ~ value ~ ",")
+}
+
+// Control flow constructs
+control_flow = _{ if_statement | for_loop | while_loop }
+
+// If statement
+if_statement = {
+    "if" ~ condition ~ "{"
+        ~ (task | control_flow)*
+    ~ "}"
+    ~ else_if_statement*
+    ~ else_statement?
+}
+
+else_if_statement = {
+    "else" ~ "if" ~ condition ~ "{"
+        ~ (task | control_flow)*
+    ~ "}"
+}
+
+else_statement = {
+    "else" ~ "{"
+        ~ (task | control_flow)*
+    ~ "}"
+}
+
+// For loop
+for_loop = {
+    "for" ~ identifier ~ "in" ~ (array | range_expr) ~ "{"
+        ~ (task | control_flow)*
+    ~ "}"
+}
+
+range_expr = { number ~ ".." ~ number }
+
+// While loop
+while_loop = {
+    "while" ~ condition ~ "{"
+        ~ (task | control_flow)*
+    ~ "}"
+}
+
+// Condition expressions
+condition = { 
+    atom ~ (logic_op ~ atom)*
+}
+
+atom = {
+    comparison |
+    boolean |
+    var_interpolation |
+    "(" ~ condition ~ ")"
+}
+
+comparison = { value ~ compare_op ~ value }
+compare_op = { "==" | "!=" | ">" | "<" | ">=" | "<=" }
+logic_op = { "&&" | "||" }
+
+// LLM specific constructs
+llm_task = {
+    "llm" ~ identifier? ~ "{"
+        ~ ("model" ~ ":" ~ string_literal ~ ",")?
+        ~ ("prompt" ~ ":" ~ string_literal ~ ",")?
+        ~ ("system" ~ ":" ~ string_literal ~ ",")?
+        ~ ("temperature" ~ ":" ~ number ~ ",")?
+        ~ ("max_tokens" ~ ":" ~ number ~ ",")?
+        ~ ("tools" ~ ":" ~ array ~ ",")?
+        ~ ("output" ~ ":" ~ string_literal ~ ",")?
+    ~ "}"
+}
+
+// Entry point
+file = { SOI ~ pipeline ~ EOI }

@@ -1,0 +1,66 @@
+// Meta-programming example pipeline
+// This pipeline uses natural language descriptions to generate a security scanning pipeline
+// Usage: piper run -p pipelines/meta_example.piper target=example.com
+
+pipeline security_scan(target="example.com") {
+  // Metadata
+  meta {
+    name: "Security Scan Pipeline"
+    author: "Piper Team"
+    description: "A security scanning pipeline generated from natural language descriptions"
+    version: "1.0.0"
+  }
+  
+  // Environment variables
+  env {
+    API_KEY: "your-api-key"
+    MODEL: "gpt-4"
+    OUTPUT_DIR: "./results"
+  }
+  
+  // Natural language descriptions
+  descriptions {
+    // Overall purpose
+    purpose "Perform a comprehensive security scan of a target domain, including port scanning, vulnerability detection, and reporting."
+    
+    // Task descriptions
+    task "Perform a port scan on the target domain to identify open ports and running services"
+    task "Take screenshots of all web services found on the target"
+    task "Check for common web vulnerabilities like XSS, SQLi, and CSRF"
+    task "Analyze all collected data for security issues and misconfigurations"
+    task "Generate a comprehensive security report with findings and recommendations"
+    
+    // Data structure descriptions
+    data "Port scan results should include port numbers, services, versions, and potential vulnerabilities"
+    data "Web screenshots should be organized by port and service"
+    data "The security report should have an executive summary, key findings, risk ratings, and detailed technical information"
+    
+    // Constraints and requirements
+    constraint "Port scanning should be performed first"
+    constraint "Screenshots and vulnerability checks can be performed in parallel after port scanning"
+    constraint "Analysis should begin only after all data collection is finished"
+    constraint "The report should be generated last"
+    constraint "All results should be saved to the OUTPUT_DIR directory"
+  }
+  
+  // Custom task (optional)
+  // This task will be included in the generated pipeline
+  custom_port_scan = cmd(
+    command="nmap -sV -p 1-1000 #{target} -oN #{env.OUTPUT_DIR}/nmap.txt",
+    description="Custom port scanning task",
+    output="port_scan_results"
+  )
+  
+  // Generate tasks based on descriptions
+  generate_tasks(
+    model="#{env.MODEL}",
+    style="function-call",  // Use function-call style for generated tasks
+    naming="descriptive"    // Use descriptive names for tasks
+  )
+  
+  // Generate flow based on descriptions and constraints
+  generate_flow(
+    model="#{env.MODEL}",
+    visualization=true      // Include a mermaid diagram in comments
+  )
+}

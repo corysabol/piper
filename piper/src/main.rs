@@ -41,6 +41,9 @@ enum SubCommand {
         /// IP and port or name of a remote agent --remote must be specified for this to be used
         #[clap(short, long, default_value = "http://127.0.0.1:50051")]
         agent: String,
+        /// Force regeneration of meta-pipeline (only applies to meta-pipelines)
+        #[clap(short, long)]
+        regenerate: bool,
     },
     /// Start in agent mode
     StartAgent {
@@ -135,6 +138,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             path,
             remote,
             agent,
+            regenerate,
         } => {
             // if remote flag is present run against
             // a given remote agent ip
@@ -144,7 +148,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 client::client_run(agent, path).await?;
             } else {
                 // otherwise run the pipeline locally using the runner
-                runner::run_from_file(path);
+                runner::run_from_file_with_options(path, regenerate);
             }
         }
         SubCommand::StartAgent {

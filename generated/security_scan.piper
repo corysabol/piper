@@ -1,0 +1,92 @@
+// Generated from meta-pipeline: security_scan
+pipeline security_scan(target="example.com") {
+  meta {
+    name: "Security Scan Pipeline"
+    author: "Piper Team"
+    description: "A security scanning pipeline generated from natural language descriptions"
+    version: "1.0.0"
+  }
+
+  env {
+    API_KEY: "your-api-key"
+    MODEL: "gpt-4"
+    OUTPUT_DIR: "./results"
+  }
+
+  // Custom task provided by the user
+  custom_port_scan = cmd(
+    command="nmap -sV -p 1-1000 #{target} -oN #{env.OUTPUT_DIR}/nmap.txt",
+    description="Custom port scanning task",
+    output="port_scan_results"
+  )
+
+  // Generated tasks based on descriptions
+  take_screenshots = cmd(
+    command="gowitness single #{target} -o #{env.OUTPUT_DIR}/screenshots/",
+    description="Taking screenshots of web services",
+    output="screenshot_results"
+  )
+
+  check_vulnerabilities = cmd(
+    command="nuclei -u #{target} -o #{env.OUTPUT_DIR}/vulnerabilities.txt",
+    description="Checking for common web vulnerabilities",
+    output="vulnerability_results"
+  )
+
+  analyze_data = llm(
+    model="#{env.MODEL}",
+    prompt="""
+      Analyze the following security data and identify issues:
+
+      Port scan results:
+      #{port_scan_results}
+
+      Screenshots:
+      #{screenshot_results}
+
+      Vulnerability scan:
+      #{vulnerability_results}
+
+      Provide a detailed analysis of security issues found.
+    """,
+    system="You are a cybersecurity expert analyzing reconnaissance data.",
+    output="analysis"
+  )
+
+  generate_report = llm(
+    model="#{env.MODEL}",
+    prompt="""
+      Create a comprehensive security report for #{target} based on:
+
+      Analysis:
+      #{analysis}
+
+      The report should include:
+      - Executive summary
+      - Key findings with risk ratings
+      - Detailed technical information
+      - Recommendations for remediation
+    """,
+    system="You are a security consultant creating detailed reports.",
+    output="report"
+  )
+
+  save_report = cmd(
+    command="mkdir -p #{env.OUTPUT_DIR} && echo '#{report}' > #{env.OUTPUT_DIR}/security_report_#{target}.md",
+    description="Saving final report"
+  )
+
+  // Generated flow based on constraints
+  flow:
+    // Port scanning first
+    custom_port_scan >
+    
+    // Screenshots and vulnerability checks in parallel
+    [take_screenshots, check_vulnerabilities] >
+    
+    // Analysis after data collection
+    analyze_data >
+    
+    // Report generation and saving last
+    generate_report > save_report
+}

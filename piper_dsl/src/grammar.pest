@@ -1,4 +1,4 @@
-// Piper DSL Grammar
+// Piper DSL Grammar - New Syntax
 
 // Whitespace and comments
 WHITESPACE = _{ " " | "\t" | NEWLINE }
@@ -8,133 +8,162 @@ COMMENT = _{ "//" ~ (!NEWLINE ~ ANY)* ~ NEWLINE | "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
 identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 string_literal = ${ "\"" ~ inner_string ~ "\"" }
 inner_string = @{ (!("\"" | "\\") ~ ANY)* ~ (("\\" ~ ANY) ~ (!("\"" | "\\") ~ ANY)*)* }
+multiline_string = ${ "\"\"\"" ~ multiline_inner ~ "\"\"\"" }
+multiline_inner = @{ (!"\"\"\"" ~ ANY)* }
 number = @{ "-"? ~ ("0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) ~ ("." ~ ASCII_DIGIT+)? }
 boolean = @{ "true" | "false" }
 
 // Variable interpolation
-var_interpolation = ${ "#{" ~ identifier ~ "}" }
+var_interpolation = ${ "#{" ~ (identifier | property_access | fallback_expr) ~ "}" }
+property_access = { identifier ~ ("." ~ identifier | "[" ~ (string_literal | identifier) ~ "]")+ }
+fallback_expr = { (identifier | property_access) ~ "||" ~ (string_literal | number | boolean) }
 
-// Value types
-value = _{ string_literal | number | boolean | var_interpolation | object | array }
+// Basic values (non-recursive)
+basic_value = {
+    string_literal | 
+    multiline_string | 
+    number | 
+    boolean | 
+    var_interpolation |
+    function_call |
+    identifier
+}
 
 // Objects and arrays
 object = {
     "{" ~ "}" |
     "{" ~ pair ~ ("," ~ pair)* ~ ","? ~ "}"
 }
-pair = { string_literal ~ ":" ~ value }
+pair = { (identifier | string_literal) ~ ":" ~ value }
 
 array = {
     "[" ~ "]" |
     "[" ~ value ~ ("," ~ value)* ~ ","? ~ "]"
 }
 
-// Pipeline structure
-pipeline = {
-    "pipeline" ~ identifier ~ "{"
-        ~ metadata
-        ~ tasks
-    ~ "}"
+// Function call
+function_call = {
+    identifier ~ "(" ~ (argument ~ ("," ~ argument)*)? ~ ")" |
+    "meta_task" ~ "(" ~ meta_task_args ~ ")" |
+    "generate_tasks" ~ "(" ~ generate_tasks_args ~ ")" |
+    "generate_flow" ~ "(" ~ generate_flow_args ~ ")"
 }
 
-metadata = {
-    "metadata" ~ "{"
-        ~ ("name" ~ ":" ~ string_literal ~ ",")?
-        ~ ("author" ~ ":" ~ string_literal ~ ",")?
-        ~ ("description" ~ ":" ~ string_literal ~ ",")?
-        ~ ("version" ~ ":" ~ string_literal ~ ",")?
-    ~ "}"
+// Meta-task specific arguments
+meta_task_args = {
+    "task" ~ "=" ~ (string_literal | multiline_string) ~ ","? ~
+    "data_shape" ~ "=" ~ (string_literal | multiline_string)
 }
 
-// Tasks
-tasks = {
-    "tasks" ~ "{"
-        ~ (task | control_flow)*
-    ~ "}"
+// Generate tasks specific arguments
+generate_tasks_args = {
+    "meta_tasks" ~ "=" ~ array ~ ","? ~
+    "custom_tasks" ~ "=" ~ array ~ ","? ~
+    "model" ~ "=" ~ string_literal ~ ","? ~
+    "style" ~ "=" ~ string_literal?
 }
 
-task = {
-    task_type ~ identifier? ~ "{"
-        ~ task_property*
-    ~ "}"
+// Generate flow specific arguments
+generate_flow_args = {
+    "tasks" ~ "=" ~ identifier ~ ","? ~
+    "constraints" ~ "=" ~ identifier ~ ","? ~
+    "description" ~ "=" ~ identifier ~ ","? ~
+    "model" ~ "=" ~ string_literal ~ ","? ~
+    "visualization" ~ "=" ~ boolean?
 }
 
-task_type = {
-    "cmd" | "script" | "llm" | "http" | "notify" | "set_var" | "lua"
+argument = {
+    (identifier ~ "=" ~ value) | value
 }
 
-task_property = {
-    (identifier ~ ":" ~ value ~ ",")
+// Value types (including objects and arrays)
+value = {
+    basic_value |
+    object |
+    array |
+    "(" ~ value ~ ")" |
+    conditional_value
 }
 
-// Control flow constructs
-control_flow = _{ if_statement | for_loop | while_loop }
-
-// If statement
-if_statement = {
-    "if" ~ condition ~ "{"
-        ~ (task | control_flow)*
-    ~ "}"
-    ~ else_if_statement*
-    ~ else_statement?
+// Conditional value expression
+conditional_value = {
+    condition ~ "?" ~ value ~ ":" ~ value
 }
 
-else_if_statement = {
-    "else" ~ "if" ~ condition ~ "{"
-        ~ (task | control_flow)*
-    ~ "}"
-}
+// Condition expressions - restructured to avoid left-recursion
+condition = { condition_term ~ (logic_op ~ condition_term)* }
 
-else_statement = {
-    "else" ~ "{"
-        ~ (task | control_flow)*
-    ~ "}"
-}
-
-// For loop
-for_loop = {
-    "for" ~ identifier ~ "in" ~ (array | range_expr) ~ "{"
-        ~ (task | control_flow)*
-    ~ "}"
-}
-
-range_expr = { number ~ ".." ~ number }
-
-// While loop
-while_loop = {
-    "while" ~ condition ~ "{"
-        ~ (task | control_flow)*
-    ~ "}"
-}
-
-// Condition expressions
-condition = { 
-    atom ~ (logic_op ~ atom)*
-}
-
-atom = {
+condition_term = {
     comparison |
     boolean |
     var_interpolation |
     "(" ~ condition ~ ")"
 }
 
-comparison = { value ~ compare_op ~ value }
+comparison = { basic_value ~ compare_op ~ basic_value }
 compare_op = { "==" | "!=" | ">" | "<" | ">=" | "<=" }
 logic_op = { "&&" | "||" }
 
-// LLM specific constructs
-llm_task = {
-    "llm" ~ identifier? ~ "{"
-        ~ ("model" ~ ":" ~ string_literal ~ ",")?
-        ~ ("prompt" ~ ":" ~ string_literal ~ ",")?
-        ~ ("system" ~ ":" ~ string_literal ~ ",")?
-        ~ ("temperature" ~ ":" ~ number ~ ",")?
-        ~ ("max_tokens" ~ ":" ~ number ~ ",")?
-        ~ ("tools" ~ ":" ~ array ~ ",")?
-        ~ ("output" ~ ":" ~ string_literal ~ ",")?
+// Pipeline structure with parameters
+pipeline = {
+    "pipeline" ~ identifier ~ parameters? ~ "{"
+        ~ (metadata | data_literal | task_definition | flow_definition)*
     ~ "}"
 }
+
+parameters = {
+    "(" ~ (parameter ~ ("," ~ parameter)*)? ~ ")"
+}
+
+parameter = {
+    identifier ~ ("=" ~ value)?
+}
+
+metadata = {
+    "meta" ~ "{"
+        ~ (identifier ~ ":" ~ value)*
+    ~ "}"
+}
+
+// Named data literals
+data_literal = {
+    identifier ~ "=" ~ value
+}
+
+// Task definitions
+task_definition = {
+    identifier ~ "=" ~ (function_call | inline_command)
+}
+
+inline_command = {
+    string_literal ~ ("->" ~ string_literal)?
+}
+
+// Flow definition
+flow_definition = {
+    "flow" ~ ":" ~ flow_expr
+}
+
+flow_expr = {
+    flow_item ~ (flow_operator ~ flow_item)*
+}
+
+flow_item = {
+    identifier |
+    parallel_flow |
+    conditional_flow |
+    "(" ~ flow_expr ~ ")"
+}
+
+parallel_flow = {
+    "[" ~ flow_item ~ ("," ~ flow_item)* ~ "]"
+}
+
+conditional_flow = {
+    "(" ~ condition ~ "?" ~ flow_item ~ (":" ~ flow_item)? ~ ")"
+}
+
+flow_operator = { ">" }
 
 // Entry point
 file = { SOI ~ pipeline ~ EOI }
