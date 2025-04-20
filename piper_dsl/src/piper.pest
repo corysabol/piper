@@ -1,11 +1,11 @@
 /*
 Simple example:
 
-=> pipeline
+=> p(parg1, parg2: "optional default value")
   a = 1
   b = "string"
-  t :> foo()
-  u :> bar()
+  t :> foo(arg1: "some value")
+  u :> bar(arg1: 1, arg2: 2)
   f -> t > u
   >> 
     f > 
@@ -17,25 +17,33 @@ Simple example:
 
 file = { SOI ~ pipeline ~ EOI }
 
-pipeline = { "=>" ~ identifier ~ variable* ~ (taskdecl | flowdecl | flowcall)* }
+pipeline = { "=>" ~ identifier ~ ("(" ~ pipeline_args ~ ")")* ~ variable* ~ (task_decl | flow_decl | flow_call)* }
+pipeline_args = {  pipeline_arg ~ ("," ~ pipeline_arg)* }
+pipeline_arg = { identifier ~ (":" ~ literal)* }
 
 identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
 variable = { identifier ~ "=" ~ literal }
 
-taskdecl = { identifier ~ ":>" ~ taskcall }
-taskcall = { identifier ~ "(" ~ ")" }
+task_decl = { identifier ~ ":>" ~ task_call }
+task_call = { identifier ~ "(" ~ task_args* ~ ")" }
+task_args = { task_arg ~ ("," ~ task_arg)* }
+task_arg = { identifier ~ ":" ~ (identifier | literal) }
 
-flowdecl   = { identifier ~ flowassign }
-flowassign = { "->" ~ flowexpr* }
-flowcall   = { ">>" ~ flowexpr* }
+flow_decl   = { identifier ~ flow_assign }
+flow_assign = { "->" ~ flow_expr* }
+flow_call   = { ">>" ~ flow_expr* }
 
-flowexpr       = {
-    (identifier | flowcollection) ~ ((">" | "|>") ~ (identifier | flowcollection))*
+flow_expr       = {
+(identifier | flow_collection) ~ ((flow_seqop | flow_paraop) ~ (identifier | flow_collection))*
 }
-flowcollection = {
-    "[" ~ (flowexpr ~ ("," ~ flowexpr)*) ~ "]"
+flow_collection = {
+"[" ~ (flow_expr ~ ("," ~ flow_expr)*) ~ "]"
 }
+
+// Operators
+flow_seqop = { ">" }
+flow_paraop = { "|>" }
 
 literal =  { string | number | boolean | unit }
 string  =  { "\"" ~ (("\\\"") | (!"\"" ~ ANY))* ~ "\"" }
