@@ -307,7 +307,7 @@ impl Pipeline {
                 pipeline.push_str("  )\n\n");
             } else {
                 // Regular task
-                pipeline.push_str(&format!("  {} = {}(\n", name, task.task_type));
+                pipeline.push_str(&format!("  {} = {:#}(\n", name, task.task_type));
                 for (key, value) in &task.named_arguments {
                     pipeline.push_str(&format!("    {}={},\n", key, value_to_string(value)));
                 }
