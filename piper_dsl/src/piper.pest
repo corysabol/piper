@@ -1,91 +1,46 @@
 /*
-    Piper is a very simple task execution language.
-    - All variables are immutable.
-    - Primitive types are number, boolean, string, unit
-    - There is no null type, only a unit type ()
-    - Type annotation are required when defining a variable
+Simple example:
 
-    All programs follow the structure below:
+=> pipeline
+  a = 1
+  b = "string"
+  t :> foo()
+  u :> bar()
+  f -> t > u
+  >> 
+    f > 
+    a |> [
+      b |> [c,d], e |> [f,g]
+    ]
 
-    => <name>(<args>) // Pipeline declaration
-        constant = value
-
-        // Task declaration
-        task_name :> builtin_task(...)
-
-        // Named flows are possible, and can nest other flows
-        flow1 -> taskA > taskB
-
-        // Implicitly executed flow, can also nest other flows
-        ->
-            task1 >
-            task2 |>
-            [task3, task4] >
-            (cond ? task5 : task6) >
-            flow1
 */
 
-// Entrypoint
 file = { SOI ~ pipeline ~ EOI }
 
-// Pipeline declaration
-pipeline = {
-    "=>" ~ identifier ~ ("(" ~ arg ~ ("," ~ arg)? ~ ")")? ~ NEWLINE ~ declarations ~ tasks ~ flows ~ flowstart ~ "}"
-}
+pipeline = { "=>" ~ identifier ~ variable* ~ (taskdecl | flowdecl | flowcall)* }
 
-// 1. Declarations section
-declarations = {
-    (declaration ~ NEWLINE+)*
-}
-declaration  = { identifier ~ "=" ~ value }
-value        = { literal | struct | collection }
-
-// 2. Tasks section
-tasks   = {
-    (task ~ NEWLINE+)*
-}
-taskdec = { identifier ~ ":>" ~ task }
-task    = { identifier ~ "(" ~ arg ~ ("," ~ arg)* ~ ")" }
-
-arg = { identifier ~ ":" ~ (value) }
-
-// 3. Flow section
-flows           = { namedflow* }
-namedflow       = { identifier ~ "->" ~ flowelement }
-flowreference   = @{ identifier }
-flowstart       = { "->" ~ flowsequence }
-flowsequence    = { flowelement ~ (flowoperator ~ flowsequence) }
-flowelement     = { flowreference | flowgroup | flowconditional }
-flowgroup       = { "(" ~ flowsequence ~ ")"}
-flowcollection  = { "[" ~ flowelement ~ ("," ~ flowelement)? ~ "]" }
-flowconditional = { flowboolexpression ~ "?" ~ flowelement ~ ":" ~ flowelement }
-flowoperator    = { ">" | "|>" } // > = sequential, |> = parallel (requires a flow collection)
-
-flowboolexpression = { prefix? ~ flowelement ~ infix ~ prefix? ~ flowelement }
-infix  = _{ equiv | or | and | less | greater | greatereq | lesseq }
-prefix = _{ not }
-equiv     = { "==" }
-not       = { "!" }
-or        = { "||" }
-and       = { "&&" }
-less      = { "<" }
-greater   = { ">" }
-greatereq = { ">=" }
-lesseq    = { "<=" }
-
-// Primitives
-// alpha numeric, can't start with a number
 identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
-string     =  { "\"" ~ ((!"\"" ~ ANY) | "\\\"")* ~ "\"" }
-number     = @{ "-"? ~ ("0" | ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)?) }
-boolean    =  { "true" | "false" }
-unit       =  { "()" }
-literal       = { number | string | interpolation | boolean | unit }
-variable      = { identifier }
-interpolation = { "#{" ~ variable ~ "}" }
-struct        = { "{" ~ (identifier ~ ":" ~ literal) ~ ("," ~ identifier ~ ":" ~ literal)* ~ "}" }
-collection    = { "[" ~ literal ~ ("," ~ literal)* ~ "]" }
 
-NEWLINE = _{ "\n" | "\r\n" }
-WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
-COMMENT = _{ "//" ~ (!NEWLINE ~ ANY)* }
+variable = { identifier ~ "=" ~ literal }
+
+taskdecl = { identifier ~ ":>" ~ taskcall }
+taskcall = { identifier ~ "(" ~ ")" }
+
+flowdecl   = { identifier ~ flowassign }
+flowassign = { "->" ~ flowexpr* }
+flowcall   = { ">>" ~ flowexpr* }
+
+flowexpr       = {
+    (identifier | flowcollection) ~ ((">" | "|>") ~ (identifier | flowcollection))*
+}
+flowcollection = {
+    "[" ~ (flowexpr ~ ("," ~ flowexpr)*) ~ "]"
+}
+
+literal =  { string | number | boolean | unit }
+string  =  { "\"" ~ (("\\\"") | (!"\"" ~ ANY))* ~ "\"" }
+number  = @{ "-"? ~ ("0" | ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)?) }
+boolean =  { "true" | "false" }
+unit    =  { "()" }
+
+WHITESPACE = _{ (" " | "\t" | NEWLINE)+ }
